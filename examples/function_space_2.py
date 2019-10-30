@@ -62,17 +62,38 @@ def main(unused_argv):
     x_train, y_train, x_test, y_test = \
       datasets.mnist(FLAGS.train_size, FLAGS.test_size)
 
+    # x_train
+    import numpy
+    # numpy.argmax(y_train,1)%2
+    # y_train_tmp = numpy.zeros((y_train.shape[0],2))
+    # y_train_tmp[np.arange(y_train.shape[0]),numpy.argmax(y_train,1)%2] = 1
+    # y_train = y_train_tmp
+    # y_test_tmp = numpy.zeros((y_test.shape[0],2))
+    # y_test_tmp[np.arange(y_train.shape[0]),numpy.argmax(y_test,1)%2] = 1
+    # y_test = y_test_tmp
+
+    y_train_tmp = numpy.argmax(y_train,1)%2
+    y_train = np.expand_dims(y_train_tmp,1)
+    y_test_tmp = numpy.argmax(y_test,1)%2
+    y_test = np.expand_dims(y_test_tmp,1)
+    # print(y_train)
     # Build the network
+    # init_fn, apply_fn, _ = stax.serial(
+    #   stax.Dense(2048, 1., 0.05),
+    #   # stax.Erf(),
+    #   stax.Relu(),
+    #   stax.Dense(2048, 1., 0.05),
+    #   # stax.Erf(),
+    #   stax.Relu(),
+    #   stax.Dense(10, 1., 0.05))
     init_fn, apply_fn, _ = stax.serial(
       stax.Dense(2048, 1., 0.05),
-      # stax.Erf(),
-      stax.Relu(),
-      stax.Dense(2048, 1., 0.05),
-      # stax.Erf(),
-      stax.Relu(),
-      stax.Dense(10, 1., 0.05))
+      stax.Erf(),
+      stax.Dense(1, 1., 0.05))
 
-    key = random.PRNGKey(0)
+    # key = random.PRNGKey(0)
+    randnnn=numpy.random.random_integers(np.iinfo(np.int32).min,high=np.iinfo(np.int32).max,size=2)[0]
+    key = random.PRNGKey(randnnn)
     _, params = init_fn(key, (-1, 784))
 
     # params
@@ -94,72 +115,9 @@ def main(unused_argv):
     predictor = nt.predict.gradient_descent_mse(g_dd, y_train, g_td)
     # g_dd.shape
 
-    m = FLAGS.train_size
-    print(m)
-    n = m*10
-    m_test = FLAGS.test_size
-    n_test = m_test*10
-    # g_td.shape
-    # predictor
-    # g_dd
-    # type(g_dd)
-    # g_dd.shape
-    # theta = g_dd.transpose((0,2,1,3)).reshape(n,n)
-    # theta_test = ntk(x_test, None, params).transpose((0,2,1,3)).reshape(n_test,n_test)
-    # theta_tilde = g_td.transpose((0,2,1,3)).reshape(n_test,n)
-    #NNGP
-    theta = nt.empirical_nngp_fn(apply_fn)(x_train,None,params)
-    theta = np.kron(theta,np.eye(10))
-    theta_test = nt.empirical_nngp_fn(apply_fn)(x_test,None,params)
-    theta_test = np.kron(theta_test,np.eye(10))
-    theta_tilde = nt.empirical_nngp_fn(apply_fn)(x_test,x_train,params)
-    theta_tilde = np.kron(theta_tilde,np.eye(10))
-    # K.shape
-    theta
-    # alpha = np.matmul(np.linalg.inv(K),np.matmul(theta,np.linalg.inv(theta)))
-    # y_train
-    # alpha = np.matmul(np.linalg.inv(K), y_train.reshape(1280))
-    # Sigma = K + np.matmul()
-    K = theta
-    sigma_noise = 1.0
-    Y = y_train.reshape(n)
-    alpha = np.matmul(np.linalg.inv(np.eye(n)*(sigma_noise**2)+K),Y)
-    # cov = np.linalg.inv(np.linalg.inv(K)+np.eye(n)/(sigma_noise**2))
-    # covi = np.linalg.inv(cov)
-    # covi = np.linalg.inv(K)+np.eye(n)/(sigma_noise**2)
-    # print(covi)
-    # np.linalg.det(K)
-    eigs = np.linalg.eigh(K)[0]
-    logdetcoviK = np.sum(np.log((eigs+sigma_noise**2) /sigma_noise**2))
-    # coviK = np.matmul(covi,K)
-    coviK = np.eye(n) + K/(sigma_noise**2)
-    # coviK
-    # covi
-    # np.linalg.det()
-    # KL = 0.5*np.log(np.linalg.det(coviK)) + 0.5*np.trace(np.linalg.inv(coviK)) + 0.5*np.matmul(alpha.T,np.matmul(K,alpha)) - n/2
-    KL = 0.5*logdetcoviK + 0.5*np.trace(np.linalg.inv(coviK)) + 0.5*np.matmul(alpha.T,np.matmul(K,alpha)) - n/2
-    print(KL)
-
-    delta = 2**-10
-    bound = (KL+2*np.log(m)+1-np.log(delta))/m
-    bound = 1-np.exp(-bound)
-    bound
-    print("bound", bound)
-
-    import numpy
-    bigK = numpy.zeros((n+n_test,n+n_test))
-    bigK
-    bigK[0:n,0:n] = K
-    bigK[0:n,n:] = theta_tilde.T
-    bigK[n:,0:n] = theta_tilde
-    bigK[n:,n:] = theta_test
-    init_ntk_f = numpy.random.multivariate_normal(np.zeros(n+n_test),bigK)
-    fx_train = init_ntk_f[:n].reshape(m,10)
-    fx_test = init_ntk_f[n:].reshape(m_test,10)
-
     # Get initial values of the network in function space.
-    # fx_train = apply_fn(params, x_train)
-    # fx_test = apply_fn(params, x_test)
+    fx_train = apply_fn(params, x_train)
+    fx_test = apply_fn(params, x_test)
 
     # Train the network.
     train_steps = int(FLAGS.train_time // FLAGS.learning_rate)

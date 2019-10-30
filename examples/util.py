@@ -21,9 +21,15 @@ from __future__ import print_function
 import jax.numpy as np
 
 
-def _accuracy(y, y_hat):
+def _accuracy(y_hat,y):
   """Compute the accuracy of the predictions with respect to one-hot labels."""
-  return np.mean(np.argmax(y, axis=1) == np.argmax(y_hat, axis=1))
+  # print(y)
+  # print(y_hat)
+  if y.shape[1] > 1:
+      return np.mean(np.argmax(y, axis=1) == np.argmax(y_hat, axis=1))
+  else:
+      return np.mean(y == (y_hat>0.5))
+      # return np.mean(y == np.sign(y_hat))
 
 
 def print_summary(name, labels, net_p, lin_p, loss):
