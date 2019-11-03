@@ -56,8 +56,6 @@ FLAGS = flags.FLAGS
 def main(unused_argv):
   x_train,y_train, x_test, y_test = pickle.load(open("data.p","rb"))
   # x_train,y_train, x_test, y_test = pickle.load(open("data_10000.p","rb"))
-  x_train = x_train/255.0
-  x_test = x_test/255.0
   # y_train = 2*y_train-1
   # y_test = 2*y_test-1
   print("Got data")
@@ -112,14 +110,14 @@ def main(unused_argv):
     #print('Computing analytic prediction.')
     fx_train, fx_test = predictor(FLAGS.train_time, fx_train, fx_test)
     # fx_test
-    # OUTPUT=fx_test>0.5
-    OUTPUT=fx_test>0
+    OUTPUT=fx_test>0.5
+    #OUTPUT=fx_test>0
     OUTPUT=OUTPUT.astype(int)
     #print(np.transpose(OUTPUT))
     fun = ''.join([str(int(i)) for i in OUTPUT])
     fun
-    # OUTPUT=y_test>0.5
-    TRUE_OUTPUT=y_test>0
+    TRUE_OUTPUT=y_test>0.5
+    #TRUE_OUTPUT=y_test>0
     TRUE_OUTPUT=TRUE_OUTPUT.astype(int)
     #print(np.transpose(OUTPUT))
     ''.join([str(int(i)) for i in TRUE_OUTPUT])
@@ -129,15 +127,15 @@ def main(unused_argv):
     util.print_summary('train', y_train, apply_fn(params, x_train), fx_train, loss)
     util.print_summary('test', y_test, apply_fn(params, x_test), fx_test, loss)
 
-    OUTPUT=fx_train>0
+    OUTPUT=fx_train>0.5
     OUTPUT=OUTPUT.astype(int)
     #print(np.transpose(OUTPUT))
     ''.join([str(int(i)) for i in OUTPUT])
-    TRUE_OUTPUT=y_train>0
+    TRUE_OUTPUT=y_train>0.5
     TRUE_OUTPUT=OUTPUT.astype(int)
     #print(np.transpose(OUTPUT))
     ''.join([str(int(i)) for i in TRUE_OUTPUT])
-    np.all(OUTPUT == TRUE_OUTPUT)
+    assert np.all(OUTPUT == TRUE_OUTPUT)
 
     file = open('data_{}_large.txt'.format(rank),'a')
     file.write(fun+'\n')
