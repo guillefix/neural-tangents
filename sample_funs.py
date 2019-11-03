@@ -111,13 +111,13 @@ def main(unused_argv):
     fx_train, fx_test = predictor(FLAGS.train_time, fx_train, fx_test)
     # fx_test
     OUTPUT=fx_test>0.5
-    # OUTPUT=fx_test>0
+    #OUTPUT=fx_test>0
     OUTPUT=OUTPUT.astype(int)
     #print(np.transpose(OUTPUT))
     fun = ''.join([str(int(i)) for i in OUTPUT])
     fun
     TRUE_OUTPUT=y_test>0.5
-    # TRUE_OUTPUT=y_test>0
+    #TRUE_OUTPUT=y_test>0
     TRUE_OUTPUT=TRUE_OUTPUT.astype(int)
     #print(np.transpose(OUTPUT))
     ''.join([str(int(i)) for i in TRUE_OUTPUT])
