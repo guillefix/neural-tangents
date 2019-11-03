@@ -124,8 +124,8 @@ def main(unused_argv):
     print(np.sum(OUTPUT == TRUE_OUTPUT)/FLAGS.test_size)
 
     loss = lambda fx, y_hat: 0.5 * np.mean((fx - y_hat) ** 2)
-    util.print_summary('train', y_train, apply_fn(params, x_train), fx_train, loss)
-    util.print_summary('test', y_test, apply_fn(params, x_test), fx_test, loss)
+    #util.print_summary('train', y_train, apply_fn(params, x_train), fx_train, loss)
+    #util.print_summary('test', y_test, apply_fn(params, x_test), fx_test, loss)
 
     OUTPUT=fx_train>0.5
     OUTPUT=OUTPUT.astype(int)
