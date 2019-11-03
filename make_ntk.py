@@ -115,9 +115,9 @@ def main(unused_argv):
   sys.stdout.flush()
   ntk = nt.batch(nt.empirical_ntk_fn(apply_fn), batch_size=4, device_count=1)
   g_dd = ntk(x_train, None, params)
-  pickle.dump(g_dd,open("ntk_train_"+str(train_size)+".p","wb"))
+  pickle.dump(g_dd,open("ntk_train_"+str(number_of_training_examples)+".p","wb"))
   g_td = ntk(x_test, x_train, params)
-  pickle.dump(g_td,open("ntk_train_test_"+str(train_size)+".p","wb"))
+  pickle.dump(g_td,open("ntk_train_test_"+str(number_of_trianing_examples)+".p","wb"))
   predictor = nt.predict.gradient_descent_mse(g_dd, y_train, g_td)
   # pickle.dump(predictor,open("ntk_predictor.p","wb"))
 
