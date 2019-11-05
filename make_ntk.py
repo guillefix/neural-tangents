@@ -100,7 +100,8 @@ def main(unused_argv):
   # Build the network
   init_fn, apply_fn, _ = stax.serial(
       stax.Dense(2048, 1., 0.05),
-      stax.Erf(),
+      # stax.Erf(),
+      stax.Relu(),
       stax.Dense(1, 1., 0.05))
 
   # initialize the network first time, to compute NTK
