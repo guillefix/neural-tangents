@@ -100,7 +100,8 @@ def main(unused_argv):
   # Build the network
   init_fn, apply_fn, _ = stax.serial(
       stax.Dense(2048, 1., 0.05),
-      stax.Erf(),
+      # stax.Erf(),
+      stax.Relu(),
       stax.Dense(1, 1., 0.05))
 
   # initialize the network first time, to compute NTK
@@ -117,7 +118,7 @@ def main(unused_argv):
   g_dd = ntk(x_train, None, params)
   pickle.dump(g_dd,open("ntk_train_"+str(number_of_training_examples)+".p","wb"))
   g_td = ntk(x_test, x_train, params)
-  pickle.dump(g_td,open("ntk_train_test_"+str(number_of_trianing_examples)+".p","wb"))
+  pickle.dump(g_td,open("ntk_train_test_"+str(number_of_training_examples)+".p","wb"))
   predictor = nt.predict.gradient_descent_mse(g_dd, y_train, g_td)
   # pickle.dump(predictor,open("ntk_predictor.p","wb"))
 
