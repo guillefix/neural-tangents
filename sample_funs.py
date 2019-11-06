@@ -24,6 +24,7 @@ import csv
 from absl import app
 from absl import flags
 from jax import random
+import jax
 from jax.api import grad
 from jax.api import jit
 from jax.experimental import optimizers
@@ -58,12 +59,15 @@ FLAGS = flags.FLAGS
 
 def main(unused_argv):
     using_SGD = FLAGS.using_SGD
-    x_train,y_train, x_test, y_test = pickle.load(open("data.p","rb"))
+    train_size = FLAGS.train_size
+    x_train,y_train, x_test, y_test = pickle.load(open("data_"+str(train_size)+".p","rb"))
     # x_train,y_train, x_test, y_test = pickle.load(open("data_10000.p","rb"))
     # y_train = 2*y_train-1
     # y_test = 2*y_test-1
     print("Got data")
     sys.stdout.flush()
+
+    train_size = FLAGS.train_size
 
     # Build the network
     init_fn, apply_fn, _ = stax.serial(
@@ -114,21 +118,34 @@ def main(unused_argv):
 
         # Get predictions from analytic computation.
         #print('Computing analytic prediction.')
+        batch_size = 1000
         if using_SGD:
             error = 1
-            lr = 0.0001
+            lr = 0.1
             lr = nt.predict.max_learning_rate(g_dd)
             print(lr)
-            lr *= 0.1
+            # lr *= 0.05
+            # lr*=1
             ntk_train = g_dd.squeeze()
             ntk_train_test = g_td.squeeze()
             # print(np.matmul(ntk_train_test,(fx_train-fx_test)).shape)
-            batch_size = FLAGS.train_size
-            while error >= 1e-2:
-                fx_test = fx_test - lr*np.matmul(ntk_train_test,(fx_train-y_train))/(2*batch_size)
-                fx_train = fx_train - lr*np.matmul(ntk_train,(fx_train-y_train))/(2*batch_size)
-                error = np.dot((fx_train-y_train).squeeze(),(fx_train-y_train).squeeze())/(2*batch_size)
-                # print(error)
+            # print(ntk_train[indices1,indices2].shape)
+            # print(y_train[indices].shape)
+            if batch_size == train_size:
+                indices = np.array(list(range(train_size)))
+            # indices2 = np.tile(indices,(batch_size,1))
+            # indices1 = indices2.T
+            while error >= 0.5:
+                if batch_size != train_size:
+                    indices = numpy.random.choice(range(train_size), size=batch_size, replace=False)
+                # indices2 = np.tile(indices,(batch_size,1))
+                # indices1 = indices2.T
+                fx_test = fx_test - lr*np.matmul(ntk_train_test[:,indices],(fx_train[indices]-y_train[indices]))/(2*batch_size)
+                fx_train = fx_train -lr*np.matmul(ntk_train[:,indices],(fx_train[indices]-y_train[indices]))/(2*batch_size)
+                # fx_train = jax.ops.index_add(fx_train, indices, -lr*np.matmul(ntk_train[:,indices],(fx_train[indices]-y_train[indices]))/(2*batch_size))
+                # print(fx_train[0:10])
+                error = np.dot((fx_train-y_train).squeeze(),(fx_train-y_train).squeeze())/(2*train_size)
+                print(error)
         else:
             fx_train, fx_test = predictor(FLAGS.train_time, fx_train, fx_test)
         # fx_test
@@ -154,9 +171,10 @@ def main(unused_argv):
         #print(np.transpose(OUTPUT))
         ''.join([str(int(i)) for i in OUTPUT])
         TRUE_OUTPUT=y_train>0.5
-        TRUE_OUTPUT=OUTPUT.astype(int)
+        TRUE_OUTPUT=TRUE_OUTPUT.astype(int)
         #print(np.transpose(OUTPUT))
         ''.join([str(int(i)) for i in TRUE_OUTPUT])
+        print("Training accuracy", np.sum(OUTPUT == TRUE_OUTPUT)/FLAGS.train_size)
         assert np.all(OUTPUT == TRUE_OUTPUT)
 
         file = open('data_{}_large.txt'.format(rank),'a')

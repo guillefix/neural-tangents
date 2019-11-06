@@ -167,7 +167,7 @@ def main(unused_argv):
 
     for i in range(train_steps):
         params = get_params(state)
-    state = opt_apply(i, grad_loss(params, x_train, y_train), state)
+        state = opt_apply(i, grad_loss(params, x_train, y_train), state)
 
     # Get predictions from analytic computation.
     print('Computing analytic prediction.')

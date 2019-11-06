@@ -65,8 +65,8 @@ def gradient_descent_mse(g_dd, y_train, g_td=None, diag_reg=0.):
     >>> fx_train_initial = f(params, x_train)
     >>> fx_test_initial = f(params, x_test)
     >>>
-    >>> fx_train_final, fx_test_final = predict_fn(
-    >>>          fx_train_initial, fx_test_initial, train_time)
+    >>> fx_train_final, fx_test_final = predict_fn(train_time, 
+    >>>          fx_train_initial, fx_test_initial)
     ```
 
   Args:
@@ -885,4 +885,3 @@ def max_learning_rate(kdd, num_outputs=-1, eps=1e-12):
     max_eva = _eigh(kdd)[0][-1]
   lr = 2 * factor / (max_eva + eps)
   return lr
-
