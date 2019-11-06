@@ -16,6 +16,9 @@ flags.DEFINE_integer('train_size', 1000,
                      'Dataset size to use for training.')
 flags.DEFINE_integer('test_size', 100,
                      'Dataset size to use for testing.')
+flags.DEFINE_boolean('normalized', False,
+                     'whether to rescale images to be between 0 and 255 or 0 and 1')
+
 FLAGS = flags.FLAGS
 
 def main(unused_argv):
@@ -24,14 +27,6 @@ def main(unused_argv):
   sys.stdout.flush()
   #x_train, y_train, x_test, y_test = \
   #    datasets.mnist(FLAGS.train_size, FLAGS.test_size)
-
-  def data_binariser(i):
-    listemp=np.ndarray.tolist(i)
-    i=listemp.index(1)
-    if i%2==0:
-      return 1
-    #return 0
-    return -1
 
   #y_train=np.asarray([data_binariser(i) for i in y_train]).reshape(-1,1)
   #y_test=np.asarray([data_binariser(i) for i in y_test]).reshape(-1,1)
@@ -58,8 +53,13 @@ def main(unused_argv):
   n = number_of_test_examples
   x_test = X_test_full[:n].reshape(n,784)
   y_test = np.asarray([data_binariser(i) for i in y_test_full])[:n].reshape(n,1)
-  x_train = x_train/255.0
-  x_test = x_test/255.0
+  if FLAGS.normalized:
+    x_train = x_train/255.0
+    x_test = x_test/255.0
+  else:
+    x_train = x_train
+    x_test = x_test
+  print(x_train.max())
   pickle.dump((x_train,y_train,x_test,y_test),open("data_"+str(number_of_training_examples)+".p","wb"))
 
 if __name__ == '__main__':

@@ -52,7 +52,7 @@ flags.DEFINE_integer('train_steps', 1000,
                      'number of training steps')
 flags.DEFINE_integer('batch_size', 32,
                      'number of examples in each training batch')
-flags.DEFINE_string('loss', "mse",
+flags.DEFINE_string('loss', "ce",
                      'the loss function to use (mse/ce)')
 
 
@@ -69,18 +69,21 @@ def main(unused_argv):
 
     # Build the network
     init_fn, apply_fn, _ = stax.serial(
-      stax.Dense(2048, 1., 0.05),
+      stax.Dense(512, 1., 0.0357),
       stax.Relu(),
-      stax.Dense(1, 1., 0.05))
+      stax.Dense(512, 1., 0.0357),
+      stax.Relu(),
+      stax.Dense(1, 1., 0.0357))
 
-    opt_init, opt_apply, get_params = optimizers.sgd(FLAGS.learning_rate)
+    #opt_init, opt_apply, get_params = optimizers.sgd(FLAGS.learning_rate)
+    opt_init, opt_apply, get_params = optimizers.adam(0.001)
 
     # Create an mse loss function and a gradient function.
     if loss=="mse":
         loss = lambda fx, y_hat: 0.5 * np.mean((fx - y_hat) ** 2)
         decision_threshold = 0.5
     elif loss=="ce":
-        loss = lambda fx, yhat: np.sum( (1-yhat)*np.log(1+np.exp(fx)) + (yhat)*(np.log(1+np.exp(fx))-fx) )
+        loss = lambda fx, yhat: np.sum( (yhat)*np.log(1+np.exp(-fx)) + (1-yhat)*(np.log(1+np.exp(-fx))+fx) )
         decision_threshold = 0.0
     else:
         raise NotImplementedError()
@@ -106,18 +109,27 @@ def main(unused_argv):
         OUTPUT=(fx_train>0).astype(int)
         TRUE_OUTPUT=(y_train>0).astype(int)
         train_acc = np.sum(OUTPUT == TRUE_OUTPUT)/FLAGS.train_size
+        #train_acc_batch = 0
         while train_acc < 1.0:
             if batch_size != train_size:
                 indices = numpy.random.choice(range(train_size), size=batch_size, replace=False)
             else:
                 indices = np.array(list(range(train_size)))
-            state = opt_apply(i, grad_loss(params, x_train[indices], y_train[indices]), state)
+            x_batch = x_train[indices]
+            y_batch = y_train[indices]
+            state = opt_apply(i, grad_loss(params, x_batch, y_batch), state)
             params = get_params(state)
-            fx_train = apply_fn(params, x_train)
-            OUTPUT=(fx_train>decision_threshold).astype(int)
-            TRUE_OUTPUT=(y_train>decision_threshold).astype(int)
-            train_acc = np.sum(OUTPUT == TRUE_OUTPUT)/FLAGS.train_size
-            # print(train_acc)
+            fx_train_batch = apply_fn(params, x_batch)
+            OUTPUT_batch=(fx_train_batch>decision_threshold).astype(int)
+            TRUE_OUTPUT_batch=(y_batch>decision_threshold).astype(int)
+            train_acc_batch = np.sum(OUTPUT_batch == TRUE_OUTPUT_batch)/FLAGS.batch_size
+            print(train_acc_batch)
+            if train_acc_batch == 1.0:
+                fx_train = apply_fn(params, x_train)
+                OUTPUT=(fx_train>decision_threshold).astype(int)
+                TRUE_OUTPUT=(y_train>decision_threshold).astype(int)
+                train_acc = np.sum(OUTPUT == TRUE_OUTPUT)/FLAGS.train_size
+                print("train_acc", train_acc)
 
         fx_train = apply_fn(params, x_train)
         fx_test = apply_fn(params, x_test)
@@ -141,7 +153,7 @@ def main(unused_argv):
 
         file = open('data_{}_large.txt'.format(rank),'a')
         file.write(fun+'\n')
-    file.close()
+        file.close()
 
 if __name__ == '__main__':
     app.run(main)
