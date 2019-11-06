@@ -75,15 +75,16 @@ def main(unused_argv):
       stax.Relu(),
       stax.Dense(1, 1., 0.0357))
 
-    #opt_init, opt_apply, get_params = optimizers.sgd(FLAGS.learning_rate)
-    opt_init, opt_apply, get_params = optimizers.adam(0.001)
+    opt_init, opt_apply, get_params = optimizers.sgd(FLAGS.learning_rate)
+    #opt_init, opt_apply, get_params = optimizers.adam(0.001)
 
     # Create an mse loss function and a gradient function.
     if loss=="mse":
         loss = lambda fx, y_hat: 0.5 * np.mean((fx - y_hat) ** 2)
         decision_threshold = 0.5
     elif loss=="ce":
-        loss = lambda fx, yhat: np.sum( (yhat)*np.log(1+np.exp(-fx)) + (1-yhat)*(np.log(1+np.exp(-fx))+fx) )
+        #loss = lambda fx, yhat: np.mean( (yhat)*np.log(1+np.exp(-fx)) + (1-yhat)*(np.log(1+np.exp(-fx))+fx) )
+        loss = lambda fx, y: np.sum( np.max(fx,0) - fx*y + np.log(1+np.exp(-np.abs(fx))) )
         decision_threshold = 0.0
     else:
         raise NotImplementedError()
@@ -123,6 +124,7 @@ def main(unused_argv):
             OUTPUT_batch=(fx_train_batch>decision_threshold).astype(int)
             TRUE_OUTPUT_batch=(y_batch>decision_threshold).astype(int)
             train_acc_batch = np.sum(OUTPUT_batch == TRUE_OUTPUT_batch)/FLAGS.batch_size
+            #print(fx_train_batch)
             print(train_acc_batch)
             if train_acc_batch == 1.0:
                 fx_train = apply_fn(params, x_train)
