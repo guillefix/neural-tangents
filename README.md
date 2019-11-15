@@ -1,7 +1,10 @@
 # Neural Tangents
  Fast and Easy Infinite Neural Networks in Python
  
-**News:** we'll be at the [NeurIPS 2019](https://nips.cc/) [Bayesian Deep Learning](http://bayesiandeeplearning.org/) and [Science meets Engineering of Deep Learning](https://sites.google.com/corp/view/sedl-neurips-2019/) workshops, come tell us about your experience with the library!
+[![Build Status](https://travis-ci.org/google/neural-tangents.svg?branch=master)](https://travis-ci.org/google/neural-tangents) [![PyPI](https://img.shields.io/pypi/v/neural-tangents)](https://pypi.org/project/neural-tangents/) [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/neural-tangents)](https://pypi.org/project/neural-tangents/) [![PyPI - License](https://img.shields.io/pypi/l/neural_tangents)](https://github.com/google/neural-tangents/blob/master/LICENSE)
+ 
+**News:** we'll be at the [NeurIPS 2019](https://nips.cc/) [Bayesian Deep Learning](http://bayesiandeeplearning.org/) and [Science meets Engineering of Deep Learning](https://sites.google.com/corp/view/sedl-neurips-2019/) workshops, and the [Symposium on
+Advances in Approximate Bayesian Inference](http://approximateinference.org/). Come tell us about your experience with the library!
 
 ## Overview
 
@@ -31,20 +34,25 @@ We happily welcome contributions!
 
 ## Installation
 
-To install Neural Tangents, first follow [JAX's](https://www.github.com/google/jax/)
-installation instructions. With JAX installed, using Neural Tangents should be
-as easy as:
-
+To use GPU, first follow [JAX's](https://www.github.com/google/jax/)
+ GPU installation instructions (not necessary for CPU-only usage). 
+ 
+ Then either run
+```
+pip install neural-tangents
+```
+or, to build the bleeding-edge version from source,
 ```
 git clone https://github.com/google/neural-tangents
 pip install -e neural-tangents
 ```
 
-You can then run the examples (using [`tensorflow_datasets`](https://github.com/tensorflow/datasets)) by calling:
+You can now run the examples (using [`tensorflow_datasets`](https://github.com/tensorflow/datasets)) by calling:
 
 ```
 pip install tensorflow tensorflow-datasets
 
+python neural-tangents/examples/infinite_fcn.py
 python neural-tangents/examples/weight_space.py
 python neural-tangents/examples/function_space.py
 ```
@@ -52,6 +60,9 @@ python neural-tangents/examples/function_space.py
 Finally, you can run tests by calling:
 
 ```
+# NOTE: a few tests will fail without
+# pip install tensorflow tensorflow-datasets
+
 for f in neural-tangents/neural_tangents/tests/*.py; do python $f; done
 ```
 
@@ -104,7 +115,7 @@ x2 = random.normal(key2, (20, 100))
 
 kernel = kernel_fn(x1, x2, 'nngp')
 ```
-Note that `kernel_fn` can compute _two_ covariance matrices corresponding to the Neural Network Gaussian Process (NNGP) and Neural Tangent (NT) kernels respectively. The NNGP kernel corresponds to the _Bayesian_ infinite neural network [[1]](#1-deep-neural-networks-as-gaussian-processes-iclr-2018-jaehoon-lee-yasaman-bahri-roman-novak-samuel-s-schoenholz-jeffrey-pennington-jascha-sohl-dickstein). The NTK corresponds to the _(continuous) gradient descent trained_ infinite network [[5]](#5-neural-tangent-kernel-convergence-and-generalization-in-neural-networks-neurips-2018-arthur-jacot-franck-gabriel-clément-hongler). In the above example, we compute the NNGP kernel but we could compute the NTK or both as follows:
+Note that `kernel_fn` can compute _two_ covariance matrices corresponding to the Neural Network Gaussian Process (NNGP) and Neural Tangent (NT) kernels respectively. The NNGP kernel corresponds to the _Bayesian_ infinite neural network [[1]](#1-deep-neural-networks-as-gaussian-processes-iclr-2018-jaehoon-lee-yasaman-bahri-roman-novak-samuel-s-schoenholz-jeffrey-pennington-jascha-sohl-dickstein). The NTK corresponds to the _(continuous) gradient descent trained_ infinite network [[5]](#5-neural-tangent-kernel-convergence-and-generalization-in-neural-networks-neurips-2018-arthur-jacot-franck-gabriel-clément-hongler). In the above example, we compute the NNGP kernel but we could compute the NTK or both:
 
 ```python
 # Get kernel of a single type
@@ -121,6 +132,14 @@ nngp, ntk = kernel_fn(x1, x2, ('nngp', 'ntk'))
 
 # Default is to return ('nngp', 'ntk')
 nngp, ntk = kernel_fn(x1, x2)
+```
+
+Additionally, if no third-argument is specified then the `kernel_fn` will return a `Kernel` namedtuple that contains additional metadata. This can be useful for composing applications of `kernel_fn` as follows:
+
+```python
+kernel = kernel_fn(x1, x2)
+kernel = kernel_fn(kernel)
+print(kernel.nngp)
 ```
 
 Doing inference with infinite networks trained on MSE loss reduces to classical GP inference, for which we also provide convenient tools:
@@ -202,6 +221,11 @@ The `neural_tangents` (`nt`) package contains the following modules and methods:
 
 
 ## Technical gotchas
+
+### GPU
+
+You must follow [JAX's](https://www.github.com/google/jax/) GPU installation instructions to enable GPU support.
+
 
 ### 64-bit precision
 To enable 64-bit precision, set the respective JAX flag _before_ importing `neural_tangents` (see the JAX [guide](https://colab.research.google.com/github/google/jax/blob/master/notebooks/Common_Gotchas_in_JAX.ipynb#scrollTo=YTktlwTTMgFl)), for example:
