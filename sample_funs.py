@@ -50,6 +50,10 @@ flags.DEFINE_integer('num_samples', 10,
                      'number of function samples')
 flags.DEFINE_boolean('using_SGD', False,
                      'number of function samples')
+flags.DEFINE_integer('batch_size', 32,
+                     'number of examples in each training batch')
+flags.DEFINE_string('loss', "ce",
+                     'the loss function to use (mse/ce)')
 
 
 FLAGS = flags.FLAGS
@@ -61,9 +65,6 @@ def main(unused_argv):
     using_SGD = FLAGS.using_SGD
     train_size = FLAGS.train_size
     x_train,y_train, x_test, y_test = pickle.load(open("data_"+str(train_size)+".p","rb"))
-    # x_train,y_train, x_test, y_test = pickle.load(open("data_10000.p","rb"))
-    # y_train = 2*y_train-1
-    # y_test = 2*y_test-1
     print("Got data")
     sys.stdout.flush()
 
@@ -76,27 +77,24 @@ def main(unused_argv):
       stax.Relu(),
       stax.Dense(1, 1., 0.05))
 
+
+    ##ONLY IMPLEMENTED MSE LOSS AND 0,1 LABELS for now
+
     # initialize the network first time, to compute NTK
     randnnn=numpy.random.random_integers(np.iinfo(np.int32).min,high=np.iinfo(np.int32).max,size=2)[0]
     key = random.PRNGKey(randnnn)
     _, params = init_fn(key, (-1, 784))
 
     # Create an MSE predictor to solve the NTK equation in function space.
-    # we assume that the NTK is approximately the same for any sample of parameters (true in the limit of infinite width)
-    print("Getting NTK")
+        # we assume that the NTK is approximately the same for any sample of parameters (true in the limit of infinite width)
     sys.stdout.flush()
-    #ntk = nt.batch(nt.empirical_ntk_fn(apply_fn), batch_size=4, device_count=0)
-    #g_dd = ntk(x_train, None, params)
-    #g_td = ntk(x_test, x_train, params)
     g_dd = pickle.load(open("ntk_train_"+str(FLAGS.train_size)+".p", "rb"))
     g_td = pickle.load(open("ntk_train_test_"+str(FLAGS.train_size)+".p", "rb"))
-    # g_dd = pickle.load(open("ntk_train_10000.p", "rb"))
-    # g_td = pickle.load(open("ntk_train_test_10000.p", "rb"))
+    print("Got NTK")
     if not using_SGD:
         predictor = nt.predict.gradient_descent_mse(g_dd, y_train, g_td)
 
-    g_dd.shape
-    y_train.shape
+    batch_size = FLAGS.batch_size
 
     from mpi4py import MPI
     comm = MPI.COMM_WORLD
@@ -116,9 +114,6 @@ def main(unused_argv):
         fx_train = apply_fn(params, x_train)
         fx_test = apply_fn(params, x_test)
 
-        # Get predictions from analytic computation.
-        #print('Computing analytic prediction.')
-        batch_size = 1000
         if using_SGD:
             error = 1
             lr = 0.1
@@ -128,35 +123,27 @@ def main(unused_argv):
             # lr*=1
             ntk_train = g_dd.squeeze()
             ntk_train_test = g_td.squeeze()
-            # print(np.matmul(ntk_train_test,(fx_train-fx_test)).shape)
-            # print(ntk_train[indices1,indices2].shape)
-            # print(y_train[indices].shape)
             if batch_size == train_size:
                 indices = np.array(list(range(train_size)))
-            # indices2 = np.tile(indices,(batch_size,1))
-            # indices1 = indices2.T
             while error >= 0.5:
                 if batch_size != train_size:
                     indices = numpy.random.choice(range(train_size), size=batch_size, replace=False)
-                # indices2 = np.tile(indices,(batch_size,1))
-                # indices1 = indices2.T
                 fx_test = fx_test - lr*np.matmul(ntk_train_test[:,indices],(fx_train[indices]-y_train[indices]))/(2*batch_size)
                 fx_train = fx_train -lr*np.matmul(ntk_train[:,indices],(fx_train[indices]-y_train[indices]))/(2*batch_size)
                 # fx_train = jax.ops.index_add(fx_train, indices, -lr*np.matmul(ntk_train[:,indices],(fx_train[indices]-y_train[indices]))/(2*batch_size))
                 # print(fx_train[0:10])
                 error = np.dot((fx_train-y_train).squeeze(),(fx_train-y_train).squeeze())/(2*train_size)
-                print(error)
+                #print(error)
         else:
+            # Get predictions from analytic computation.
             fx_train, fx_test = predictor(FLAGS.train_time, fx_train, fx_test)
-        # fx_test
+
         OUTPUT=fx_test>0.5
-        #OUTPUT=fx_test>0
         OUTPUT=OUTPUT.astype(int)
         #print(np.transpose(OUTPUT))
         fun = ''.join([str(int(i)) for i in OUTPUT])
         fun
         TRUE_OUTPUT=y_test>0.5
-        #TRUE_OUTPUT=y_test>0
         TRUE_OUTPUT=TRUE_OUTPUT.astype(int)
         #print(np.transpose(OUTPUT))
         ''.join([str(int(i)) for i in TRUE_OUTPUT])
