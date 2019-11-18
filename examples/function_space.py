@@ -104,23 +104,27 @@ def main(unused_argv):
     # g_dd
     # type(g_dd)
     # g_dd.shape
-    # theta = g_dd.transpose((0,2,1,3)).reshape(n,n)
-    # theta_test = ntk(x_test, None, params).transpose((0,2,1,3)).reshape(n_test,n_test)
-    # theta_tilde = g_td.transpose((0,2,1,3)).reshape(n_test,n)
+    theta = g_dd.transpose((0,2,1,3)).reshape(n,n)
+    theta_test = ntk(x_test, None, params).transpose((0,2,1,3)).reshape(n_test,n_test)
+    theta_tilde = g_td.transpose((0,2,1,3)).reshape(n_test,n)
     #NNGP
-    theta = nt.empirical_nngp_fn(apply_fn)(x_train,None,params)
-    theta = np.kron(theta,np.eye(10))
-    theta_test = nt.empirical_nngp_fn(apply_fn)(x_test,None,params)
-    theta_test = np.kron(theta_test,np.eye(10))
-    theta_tilde = nt.empirical_nngp_fn(apply_fn)(x_test,x_train,params)
-    theta_tilde = np.kron(theta_tilde,np.eye(10))
+    K = nt.empirical_nngp_fn(apply_fn)(x_train,None,params)
+    K = np.kron(theta,np.eye(10))
+    K_test = nt.empirical_nngp_fn(apply_fn)(x_test,None,params)
+    K_test = np.kron(theta_test,np.eye(10))
+    K_tilde = nt.empirical_nngp_fn(apply_fn)(x_test,x_train,params)
+    K_tilde = np.kron(theta_tilde,np.eye(10))
+
+    decay_matrix = np.eye(n)-scipy.linalg.expm(-t*theta)
+    Sigma = K + np.matmul(decay_matrix, np.matmul(K, np.matmul(np.linalg.inv(theta), np.matmul(decay_matrix, theta))) - 2*K)
+
     # K.shape
     theta
     # alpha = np.matmul(np.linalg.inv(K),np.matmul(theta,np.linalg.inv(theta)))
     # y_train
     # alpha = np.matmul(np.linalg.inv(K), y_train.reshape(1280))
     # Sigma = K + np.matmul()
-    K = theta
+    # K = theta
     sigma_noise = 1.0
     Y = y_train.reshape(n)
     alpha = np.matmul(np.linalg.inv(np.eye(n)*(sigma_noise**2)+K),Y)
@@ -132,7 +136,7 @@ def main(unused_argv):
     eigs = np.linalg.eigh(K)[0]
     logdetcoviK = np.sum(np.log((eigs+sigma_noise**2) /sigma_noise**2))
     # coviK = np.matmul(covi,K)
-    coviK = np.eye(n) + K/(sigma_noise**2)
+    # coviK = np.eye(n) + K/(sigma_noise**2)
     # coviK
     # covi
     # np.linalg.det()
