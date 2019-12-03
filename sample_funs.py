@@ -164,7 +164,7 @@ def main(unused_argv):
         print("Training accuracy", np.sum(OUTPUT == TRUE_OUTPUT)/FLAGS.train_size)
         assert np.all(OUTPUT == TRUE_OUTPUT)
 
-        file = open('data_{}_large.txt'.format(rank),'a')
+        file = open('results/data_{}_large.txt'.format(rank),'a')
         file.write(fun+'\n')
     file.close()
 
